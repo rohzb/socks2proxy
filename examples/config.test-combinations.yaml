@@ -1,0 +1,103 @@
+# Test matrix for routing input combinations.
+# This file is intended for parser/validation checks.
+
+listen: ":41080"
+
+allowed_client_addresses:
+  - "127.0.0.1/32"
+  - "::1/128"
+
+# Global TLS defaults (can be overridden per rule/default).
+tls:
+  insecure_skip_verify: false
+  min_version: "1.2"
+
+routing:
+  # Keep fallback explicit for test clarity.
+  default:
+    method: "reject"
+
+  rules:
+    # 1) dst_ports as single scalar int
+    - dst_ports: 80
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      method: "http"
+      upstream: "http://proxy.example.com:3128"
+
+    # 2) dst_ports as YAML list of ints
+    - dst_ports: [443, 444]
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      method: "connect"
+      upstream: "https://proxy.example.com:8443"
+      tls:
+        insecure_skip_verify: false
+        min_version: "1.3"
+
+    # 3) dst_ports as comma-separated scalar string
+    - dst_ports: "8080,8081,8082"
+      dst_addresses: ["0.0.0.0/0"]
+      method: "direct"
+
+    # 4) dst_ports as range in scalar string
+    - dst_ports: "9000-9003"
+      dst_addresses: ["0.0.0.0/0"]
+      method: "reject"
+
+    # 5) dst_port (singular key) as scalar int
+    - dst_port: 22
+      dst_addresses: ["0.0.0.0/0"]
+      method: "direct"
+
+    # 6) dst_port (singular key) as CSV/range scalar string
+    - dst_port: "10000,10001,10010-10012"
+      dst_addresses: ["0.0.0.0/0"]
+      method: "reject"
+
+    # 7) dst_addresses as YAML list: single IP + CIDR + IP range
+    - dst_ports: [53]
+      dst_addresses:
+        - "10.10.10.10"
+        - "172.16.0.0/16"
+        - "192.168.1.10-192.168.1.30"
+      method: "connect"
+      upstream: "https://proxy.example.com:8443"
+
+    # 8) dst_addresses as comma-separated scalar string
+    - dst_ports: [123]
+      dst_addresses: "10.0.0.5,10.0.1.0/24,10.0.2.10-10.0.2.20"
+      method: "http"
+      upstream: "http://proxy.example.com:3128"
+
+    # 9) dst_address (singular key) as scalar single IP
+    - dst_ports: [3306]
+      dst_address: "192.0.2.10"
+      method: "direct"
+
+    # 10) dst_address (singular key) as scalar CIDR
+    - dst_ports: [5432]
+      dst_address: "198.51.100.0/24"
+      method: "direct"
+
+    # 11) dst_address (singular key) as scalar IP range
+    - dst_ports: [6379]
+      dst_address: "203.0.113.10-203.0.113.40"
+      method: "reject"
+
+    # 12) dst_address (singular key) as YAML list + mixed CSV/range entries
+    - dst_ports: "7000-7002"
+      dst_address:
+        - "10.20.0.0/16"
+        - "10.30.40.5,10.30.40.10-10.30.40.20"
+      method: "connect"
+      upstream: "https://proxy.example.com:8443"
+
+# Keep runtime knobs valid and simple.
+timeouts:
+  connect: "10s"
+  idle: "300s"
+
+http:
+  max_header_bytes: 65536
+
+logging:
+  level: "info"

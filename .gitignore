@@ -1,0 +1,27 @@
+# Binaries
+/socks2proxy
+/dist
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.out
+
+# Go workspace/vendor artifacts
+vendor/
+
+# Local runtime config (copied from config.example.yaml)
+/config.yaml
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Local/legacy workflow file
+.github/workflows/ci.yml

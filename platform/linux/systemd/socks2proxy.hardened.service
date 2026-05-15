@@ -1,0 +1,58 @@
+# Hardened socks2proxy systemd service unit.
+# This is an example. Adjust paths, listen port, and read paths for your host.
+[Unit]
+Description=SOCKS5 bridge with explicit routing rules (hardened)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/socks2proxy --config /usr/local/etc/socks2proxy/config.yaml
+Restart=on-failure
+RestartSec=2s
+
+# Run unprivileged.
+User=socks2proxy
+Group=socks2proxy
+DynamicUser=false
+
+# Filesystem and privilege hardening.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RemoveIPC=true
+UMask=0077
+
+# Networking and syscall constraints.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+# socks2proxy only needs read access to config and CA store by default.
+ReadOnlyPaths=/usr/local/etc/socks2proxy/config.yaml
+ReadOnlyPaths=/etc/ssl/certs
+ReadOnlyPaths=/etc/pki
+
+# If you use tls.ca_cert_file outside these directories, add more ReadOnlyPaths.
+# ReadOnlyPaths=/opt/socks2proxy/custom-ca
+
+# AppArmor profile name (must match installed profile).
+AppArmorProfile=usr.local.bin.socks2proxy
+
+[Install]
+WantedBy=multi-user.target

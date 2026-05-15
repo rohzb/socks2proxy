@@ -1,0 +1,20 @@
+# socks2proxy systemd service unit.
+[Unit]
+Description=SOCKS5 to HTTP proxy bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/socks2proxy --config /usr/local/etc/socks2proxy/config.yaml
+Restart=on-failure
+RestartSec=2s
+User=socks2proxy
+Group=socks2proxy
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,46 @@
+name: Coverage
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  COVERAGE_MIN: "80"
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run coverage
+        run: go test ./... -covermode=atomic -coverprofile=coverage.out
+
+      - name: Enforce coverage threshold
+        shell: bash
+        run: |
+          set -euo pipefail
+          total="$(go tool cover -func=coverage.out | awk '/^total:/ {print substr($3, 1, length($3)-1)}')"
+          min="${COVERAGE_MIN}"
+          echo "Total coverage: ${total}%"
+          echo "Minimum required: ${min}%"
+          awk -v total="$total" -v min="$min" 'BEGIN { if (total + 0 < min + 0) exit 1 }'
+
+      - name: Publish coverage summary
+        shell: bash
+        run: |
+          total="$(go tool cover -func=coverage.out | awk '/^total:/ {print substr($3, 1, length($3)-1)}')"
+          {
+            echo "## Coverage"
+            echo
+            echo "- Total: **${total}%**"
+            echo "- Threshold: **${COVERAGE_MIN}%**"
+          } >> "$GITHUB_STEP_SUMMARY"

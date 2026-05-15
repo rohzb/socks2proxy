@@ -1,0 +1,37 @@
+# AppArmor profile for /usr/local/bin/socks2proxy
+# Install path: /etc/apparmor.d/usr.local.bin.socks2proxy
+#include <tunables/global>
+
+profile usr.local.bin.socks2proxy /usr/local/bin/socks2proxy {
+  #include <abstractions/base>
+
+  # Capability set kept minimal.
+  deny capability,
+
+  # Network: TCP client and server sockets.
+  network inet stream,
+  network inet6 stream,
+
+  # Binary + config + cert store read access.
+  /usr/local/bin/socks2proxy mr,
+  /usr/local/etc/socks2proxy/config.yaml r,
+  /etc/ssl/certs/** r,
+  /etc/pki/** r,
+
+  # Allow reading shared libs, resolver, nss, timezone, proc metadata.
+  /etc/hosts r,
+  /etc/resolv.conf r,
+  /etc/nsswitch.conf r,
+  /etc/host.conf r,
+  /etc/localtime r,
+  /run/systemd/resolve/** r,
+  /proc/** r,
+  /sys/devices/system/cpu/** r,
+
+  # Explicitly deny write access to filesystem by default.
+  deny /** w,
+  deny /** wk,
+  deny /** wl,
+  deny /** wa,
+  deny /** wklx,
+}

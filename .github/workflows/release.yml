@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Validate
+        run: make check
+
+      - name: Build and package
+        run: make release-manifest
+
+      - name: Derive channel tags
+        id: channels
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}" # vMAJOR.MINOR.PATCH
+          semver="${tag#v}"
+          major="${semver%%.*}"
+          rest="${semver#*.}"
+          minor="${rest%%.*}"
+          echo "release_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "major_tag=v${major}" >> "$GITHUB_OUTPUT"
+          echo "minor_tag=v${major}.${minor}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.channels.outputs.release_tag }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber
+            gh release edit "$tag" --latest
+          else
+            gh release create "$tag" release/* --generate-notes --latest
+          fi
+
+      - name: Update moving channel tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          target="${GITHUB_SHA}"
+          for tag in latest "${{ steps.channels.outputs.major_tag }}" "${{ steps.channels.outputs.minor_tag }}"; do
+            git tag -fa "$tag" -m "Channel tag ${tag} -> ${GITHUB_REF_NAME}" "$target"
+            git push origin "refs/tags/${tag}" --force
+          done
+
+      - name: Publish moving channel assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_tag="${{ steps.channels.outputs.release_tag }}"
+          for tag in latest "${{ steps.channels.outputs.major_tag }}" "${{ steps.channels.outputs.minor_tag }}"; do
+            notes="Moving channel release. Tracks ${release_tag}."
+            title="${tag}"
+            tmpdir="$(mktemp -d)"
+            cp release/release-manifest.json "$tmpdir/release-manifest.json"
+            for src in release/socks2proxy_*; do
+              base="$(basename "$src")"
+              renamed="$(printf '%s' "$base" | sed -E "s/^socks2proxy_[^_]+_/socks2proxy_${tag}_/")"
+              cp "$src" "$tmpdir/$renamed"
+            done
+            (
+              cd "$tmpdir"
+              sha256sum socks2proxy_* > SHA256SUMS
+            )
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" "$tmpdir"/* --clobber
+              gh release edit "$tag" --title "$title" --notes "$notes" --latest=false
+            else
+              gh release create "$tag" "$tmpdir"/* --title "$title" --notes "$notes" --latest=false
+            fi
+            rm -rf "$tmpdir"
+          done

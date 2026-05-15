@@ -1,0 +1,105 @@
+# socks2proxy example configuration.
+# Copy this file to config.yaml and adjust values for your environment.
+
+# Local TCP listen address for the SOCKS5 server.
+# Format: host:port, :port, or [ipv6]:port.
+listen: ":41080"
+
+# Source client address allowlist.
+# Only clients matching one of these address selectors can use the SOCKS5 service.
+# Supported selector forms:
+# - single IP: "10.10.10.5"
+# - CIDR: "10.10.0.0/16"
+# - IP range: "10.10.10.20-10.10.10.60"
+allowed_client_addresses:
+  # Example private subnet.
+  - "172.31.11.0/24"
+  # Localhost access.
+  - "127.0.0.1/32"
+
+# Optional global TLS defaults for HTTPS upstream proxy connections.
+# Applied to routing rules/default when they do not define their own tls block.
+# Per-rule/default tls blocks fully override this global block.
+tls:
+  # Verify upstream certificate chain and hostname by default.
+  insecure_skip_verify: false
+  # Optional custom root CA bundle (PEM) for HTTPS upstream verification.
+  # ca_cert_file: "/etc/ssl/certs/custom-ca-bundle.pem"
+  # Minimum TLS version for HTTPS upstream handshake: "1.2" or "1.3".
+  min_version: "1.2"
+
+# Routing configuration.
+routing:
+  # Optional fallback rule used when no routing rule matches.
+  # If omitted, implicit default is method: "reject".
+  default:
+    method: "reject"
+    # For default method "http" or "connect", set upstream URL, for example:
+    # upstream: "http://proxy.example.com:3128"
+    # upstream: "https://proxy.example.com:8443"
+    #
+    # Optional TLS settings for HTTPS upstream only:
+    # This block fully overrides top-level tls defaults for this rule.
+    # tls:
+    #   insecure_skip_verify: false
+    #   ca_cert_file: "/etc/ssl/certs/custom-ca-bundle.pem"
+    #   min_version: "1.2"
+
+  # Rules map destination target ports to handling method.
+  rules:
+    # HTTP traffic on port 80: forward HTTP requests via upstream HTTP proxy.
+    - dst_ports: [80]
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      # Required destination address selectors. Supported forms:
+      # - single IP: "10.10.10.5"
+      # - CIDR: "10.10.0.0/16"
+      # - IP range: "10.10.10.20-10.10.10.60"
+      method: "http"
+      upstream: "http://proxy.example.com:3128"
+      # Optional TLS settings for HTTPS upstream only:
+      # This block fully overrides top-level tls defaults for this rule.
+      # tls:
+      #   insecure_skip_verify: true
+      #   ca_cert_file: "/etc/ssl/certs/custom-ca-bundle.pem"
+      #   min_version: "1.2"
+
+    # HTTPS traffic on port 443: open upstream CONNECT tunnel.
+    - dst_ports: [443]
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      method: "connect"
+      upstream: "http://proxy.example.com:3128"
+      # Example for TLS-wrapped upstream proxy endpoint:
+      # upstream: "https://proxy.example.com:8443"
+      # Optional TLS settings for HTTPS upstream only:
+      # This block fully overrides top-level tls defaults for this rule.
+      # tls:
+      #   insecure_skip_verify: false
+      #   ca_cert_file: "/etc/ssl/certs/custom-ca-bundle.pem"
+      #   min_version: "1.3"
+
+    # SSH traffic on port 22: direct TCP connection (no upstream proxy).
+    - dst_ports: [22]
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      method: "direct"
+
+    # Example explicit reject rule for SMTP traffic.
+    - dst_ports: [25]
+      dst_addresses: ["0.0.0.0/0", "::/0"]
+      method: "reject"
+
+# Timeout settings (Go duration format: ms, s, m, h).
+timeouts:
+  # Timeout for establishing upstream/direct TCP connection.
+  connect: "10s"
+  # Idle socket timeout for active connections.
+  idle: "300s"
+
+# HTTP parser and buffer settings.
+http:
+  # Maximum header bytes accepted from client HTTP requests.
+  max_header_bytes: 65536
+
+# Logging settings.
+logging:
+  # Allowed levels: debug, info, warn, error.
+  level: "info"
