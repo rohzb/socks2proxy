@@ -4,8 +4,9 @@ This guide covers common ways to install and run `socks2proxy`.
 
 ## 1. Build from source
 
+
 ```bash
-cd /workspaces/ansible-stack-ist/local/gosr/socks2http
+cd socks2proxy
 make build
 ```
 

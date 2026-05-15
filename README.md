@@ -3,8 +3,8 @@
 `socks2proxy` is a lightweight SOCKS5 egress router with explicit rule-based
 routing.
 
-[![Checks](https://github.com/rohzb/socks2http/actions/workflows/checks.yml/badge.svg)](https://github.com/rohzb/socks2http/actions/workflows/checks.yml)
-[![Coverage](https://github.com/rohzb/socks2http/actions/workflows/coverage.yml/badge.svg)](https://github.com/rohzb/socks2http/actions/workflows/coverage.yml)
+[![Checks](https://github.com/rohzb/socks2proxy/actions/workflows/checks.yml/badge.svg)](https://github.com/rohzb/socks2proxy/actions/workflows/checks.yml)
+[![Coverage](https://github.com/rohzb/socks2proxy/actions/workflows/coverage.yml/badge.svg)](https://github.com/rohzb/socks2proxy/actions/workflows/coverage.yml)
 
 ## Background
 
