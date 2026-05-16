@@ -89,7 +89,7 @@ Notes:
 
 Routing has two parts:
 
-- `routing.rules`: first-match rules by `dst_port(s)` and required `dst_address(es)`
+- `routing.rules`: first-match rules by destination selectors (`dst_port(s)`, `dst_address(es)`, or both)
 - `routing.default`: fallback when no rule matches
 
 ### `routing.default`
@@ -110,8 +110,8 @@ That means unmatched ports are rejected unless you set another default.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `dst_ports` / `dst_port` | list/scalar | yes | Destination TCP port selector(s); accepts list or comma-separated/range scalar. |
-| `dst_addresses` / `dst_address` | list/scalar | yes | Destination address selector(s); accepts list or comma-separated scalar. |
+| `dst_ports` / `dst_port` | list/scalar | conditional | Destination TCP port selector(s); accepts list or comma-separated/range scalar. If omitted, any destination port matches. |
+| `dst_addresses` / `dst_address` | list/scalar | conditional | Destination address selector(s); accepts list or comma-separated scalar. If omitted, any destination address matches. |
 | `method` | string | yes | One of `http`, `connect`, `direct`, `reject`. |
 | `upstream` | string | conditional | Required for `http` and `connect`; forbidden for `direct` and `reject`. |
 | `tls` | object | optional | Optional HTTPS upstream TLS settings. |
@@ -192,6 +192,12 @@ Important:
 1. First `routing.rules` match in list order (port + address match)
 2. `routing.default` fallback
 3. If no `routing.default` configured, implicit `reject`
+
+Selector semantics:
+- If a rule defines both port and address selectors, both must match.
+- If a rule omits `dst_port(s)`, port matching is wildcard (`any`).
+- If a rule omits `dst_address(es)`, address matching is wildcard (`any`).
+- A rule must define at least one selector type (port and/or address).
 
 ### Rule validation
 
@@ -286,6 +292,6 @@ routing:
 - `method: "direct"` with `upstream` set -> invalid (upstream forbidden).
 - `method: "reject"` with `upstream` set -> invalid (upstream forbidden).
 - `method: "http"` or `"connect"` without `upstream` -> invalid (upstream required).
-- missing `dst_addresses`/`dst_address` in a rule -> invalid (destination selector required).
+- missing both destination selector types in a rule -> invalid (at least one of port/address is required).
 - `logging.level: "verbose"` -> invalid (not in allowed set).
 - `listen: ":0"` -> invalid (port out of allowed range).

@@ -137,11 +137,17 @@ func (r *Router) Route(client net.Conn, targetHost string, targetPort int) error
 }
 
 func (r Rule) matchesPort(port int) bool {
+	if len(r.DstPorts) == 0 {
+		return true
+	}
 	_, ok := r.DstPorts[port]
 	return ok
 }
 
 func (r Rule) matchesAddress(host string) bool {
+	if len(r.DstAddresses) == 0 {
+		return true
+	}
 	ip := net.ParseIP(host)
 	if ip == nil {
 		return false

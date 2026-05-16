@@ -39,6 +39,27 @@ func TestValidateRejectsInvalidRoutingDefault(t *testing.T) {
 	}
 }
 
+func TestValidateRoutingRuleRequiresAtLeastOneSelector(t *testing.T) {
+	cfg := Default()
+	cfg.Routing.Rules = []RouteRule{
+		{Method: "reject"},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatalf("expected validation error when both dst ports and addresses are missing")
+	}
+}
+
+func TestValidateAllowsRoutingRuleWithOnlyOneSelector(t *testing.T) {
+	cfg := Default()
+	cfg.Routing.Rules = []RouteRule{
+		{DstPorts: PortSpecs{443}, Method: "direct"},
+		{DstAddresses: AddressSpecs{"10.0.0.0/24"}, Method: "reject"},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("expected valid config when each rule has at least one selector, got: %v", err)
+	}
+}
+
 func TestValidateDirectMustNotHaveUpstream(t *testing.T) {
 	cfg := Default()
 	cfg.Routing.Rules = []RouteRule{

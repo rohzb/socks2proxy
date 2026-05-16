@@ -67,3 +67,13 @@ func TestRuleMatchHelpers(t *testing.T) {
 		t.Fatalf("hostname should not match address specs")
 	}
 }
+
+func TestRuleMatchHelpersWildcardSelectors(t *testing.T) {
+	r := Rule{}
+	if !r.matchesPort(443) {
+		t.Fatalf("expected empty dst ports to match any port")
+	}
+	if !r.matchesAddress("example.com") {
+		t.Fatalf("expected empty dst addresses to match any host")
+	}
+}

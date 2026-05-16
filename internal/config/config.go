@@ -270,17 +270,14 @@ func (c Config) Validate() error {
 	}
 	for _, rule := range c.Routing.Rules {
 		ports := rulePorts(rule)
-		if len(ports) == 0 {
-			return errors.New("routing rule must define dst_port or dst_ports")
+		addresses := ruleAddresses(rule)
+		if len(ports) == 0 && len(addresses) == 0 {
+			return errors.New("routing rule must define at least one selector: dst_port(s) or dst_address(es)")
 		}
 		for _, p := range ports {
 			if p < 1 || p > 65535 {
 				return fmt.Errorf("routing rule port out of range: %d", p)
 			}
-		}
-		addresses := ruleAddresses(rule)
-		if len(addresses) == 0 {
-			return errors.New("routing rule must define dst_address or dst_addresses")
 		}
 		for _, spec := range addresses {
 			if err := addressspec.Validate(spec); err != nil {
