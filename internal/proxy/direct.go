@@ -9,9 +9,16 @@ import (
 )
 
 // HandleDirect connects directly to the target and relays bytes bidirectionally.
-func HandleDirect(client net.Conn, targetHost string, targetPort int, connectTimeout time.Duration, idleTimeout time.Duration) error {
+func HandleDirect(client net.Conn, targetHost string, targetPort int, sourceIP string, connectTimeout time.Duration, idleTimeout time.Duration) error {
 	targetAddr := net.JoinHostPort(targetHost, fmt.Sprintf("%d", targetPort))
 	dialer := net.Dialer{Timeout: connectTimeout}
+	if sourceIP != "" {
+		localIP := net.ParseIP(sourceIP)
+		if localIP == nil {
+			return fmt.Errorf("invalid source_ip %q", sourceIP)
+		}
+		dialer.LocalAddr = &net.TCPAddr{IP: localIP}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
 

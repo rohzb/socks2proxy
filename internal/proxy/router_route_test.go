@@ -59,4 +59,10 @@ func TestRouterRouteInvalidUpstreamAndDialFailure(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "dial upstream proxy") {
 		t.Fatalf("expected dial upstream error, got: %v", err)
 	}
+
+	r.Rules[0].SourceIP = "invalid-ip"
+	err = r.Route(c1, "10.0.0.1", 80)
+	if err == nil || !strings.Contains(err.Error(), "invalid source_ip") {
+		t.Fatalf("expected invalid source_ip error, got: %v", err)
+	}
 }

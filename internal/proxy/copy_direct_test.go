@@ -40,7 +40,7 @@ func TestHandleDirectDialFailure(t *testing.T) {
 	client, peer := net.Pipe()
 	defer client.Close()
 	defer peer.Close()
-	err := HandleDirect(client, "127.0.0.1", 1, 20*time.Millisecond, 20*time.Millisecond)
+	err := HandleDirect(client, "127.0.0.1", 1, "", 20*time.Millisecond, 20*time.Millisecond)
 	if err == nil {
 		t.Fatalf("expected direct dial failure")
 	}
@@ -70,7 +70,7 @@ func TestHandleDirectSuccess(t *testing.T) {
 	go func() {
 		host, portStr, _ := net.SplitHostPort(ln.Addr().String())
 		p, _ := ParsePort(portStr)
-		errCh <- HandleDirect(clientServer, host, p, time.Second, time.Second)
+		errCh <- HandleDirect(clientServer, host, p, "", time.Second, time.Second)
 	}()
 
 	_, _ = clientPeer.Write([]byte("ok"))
@@ -85,5 +85,15 @@ func TestHandleDirectSuccess(t *testing.T) {
 	_ = clientPeer.Close()
 	if err := <-errCh; err != nil {
 		t.Fatalf("handle direct should succeed, got: %v", err)
+	}
+}
+
+func TestHandleDirectInvalidSourceIP(t *testing.T) {
+	client, peer := net.Pipe()
+	defer client.Close()
+	defer peer.Close()
+	err := HandleDirect(client, "127.0.0.1", 80, "not-an-ip", 20*time.Millisecond, 20*time.Millisecond)
+	if err == nil {
+		t.Fatalf("expected invalid source_ip error")
 	}
 }

@@ -34,6 +34,8 @@ routing:
   # If omitted, implicit default is method: "reject".
   default:
     method: "reject"
+    # Optional source IP for outbound socket binding when this default rule dials.
+    # source_ip: "192.0.2.20"
     # For default method "http" or "connect", set upstream URL, for example:
     # upstream: "http://proxy.example.com:3128"
     # upstream: "https://proxy.example.com:8443"
@@ -56,6 +58,8 @@ routing:
       # - IP range: "10.10.10.20-10.10.10.60"
       method: "http"
       upstream: "http://proxy.example.com:3128"
+      # Optional source IP for outbound socket binding (direct or upstream dial).
+      # source_ip: "192.0.2.10"
       # Optional TLS settings for HTTPS upstream only:
       # This block fully overrides top-level tls defaults for this rule.
       # tls:
@@ -68,6 +72,7 @@ routing:
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "connect"
       upstream: "http://proxy.example.com:3128"
+      # source_ip: "192.0.2.11"
       # Example for TLS-wrapped upstream proxy endpoint:
       # upstream: "https://proxy.example.com:8443"
       # Optional TLS settings for HTTPS upstream only:
@@ -81,6 +86,7 @@ routing:
     - dst_ports: [22]
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "direct"
+      # source_ip: "198.51.100.5"
 
     # Example explicit reject rule for SMTP traffic.
     - dst_ports: [25]

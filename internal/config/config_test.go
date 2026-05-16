@@ -60,6 +60,49 @@ func TestValidateAllowsRoutingRuleWithOnlyOneSelector(t *testing.T) {
 	}
 }
 
+func TestValidateSupportsSourceIPForRuleAndDefault(t *testing.T) {
+	cfg := Default()
+	cfg.Routing.Rules = []RouteRule{
+		{
+			DstPorts: PortSpecs{443},
+			Method:   "connect",
+			Upstream: "http://proxy.example.com:3128",
+			SourceIP: "192.0.2.10",
+		},
+	}
+	cfg.Routing.Default = &DefaultRule{
+		Method:   "direct",
+		SourceIP: "198.51.100.20",
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("expected valid config with source_ip, got: %v", err)
+	}
+}
+
+func TestValidateRejectsInvalidSourceIP(t *testing.T) {
+	cfg := Default()
+	cfg.Routing.Rules = []RouteRule{
+		{
+			DstPorts: PortSpecs{443},
+			Method:   "connect",
+			Upstream: "http://proxy.example.com:3128",
+			SourceIP: "not-an-ip",
+		},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatalf("expected validation error for invalid rule source_ip")
+	}
+
+	cfg = Default()
+	cfg.Routing.Default = &DefaultRule{
+		Method:   "direct",
+		SourceIP: "bad-ip",
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatalf("expected validation error for invalid default source_ip")
+	}
+}
+
 func TestValidateDirectMustNotHaveUpstream(t *testing.T) {
 	cfg := Default()
 	cfg.Routing.Rules = []RouteRule{

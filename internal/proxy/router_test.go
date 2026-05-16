@@ -25,6 +25,7 @@ func TestRulesFromConfigAndDefaultRule(t *testing.T) {
 			{
 				DstPorts:     config.PortSpecs{80},
 				DstAddresses: config.AddressSpecs{"10.0.0.0/24"},
+				SourceIP:     "192.0.2.10",
 				Method:       "http",
 				Upstream:     "http://proxy.example.com:3128",
 			},
@@ -42,10 +43,21 @@ func TestRulesFromConfigAndDefaultRule(t *testing.T) {
 	if rules[0].TLS != globalTLS {
 		t.Fatalf("expected global tls defaults on rule")
 	}
+	if rules[0].SourceIP != "192.0.2.10" {
+		t.Fatalf("expected source_ip carried into runtime rule")
+	}
 
-	def := DefaultRuleFromConfig(config.Routing{}, globalTLS)
-	if def.Method != MethodReject {
-		t.Fatalf("expected implicit reject default")
+	def := DefaultRuleFromConfig(config.Routing{
+		Default: &config.DefaultRule{
+			Method:   "direct",
+			SourceIP: "198.51.100.4",
+		},
+	}, globalTLS)
+	if def.Method != MethodDirect {
+		t.Fatalf("expected configured default method")
+	}
+	if def.SourceIP != "198.51.100.4" {
+		t.Fatalf("expected source_ip carried into default rule")
 	}
 }
 

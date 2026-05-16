@@ -39,6 +39,7 @@ type RouteRule struct {
 	DstPort      PortSpecs    `yaml:"dst_port,omitempty"`
 	DstAddresses AddressSpecs `yaml:"dst_addresses,omitempty"`
 	DstAddress   AddressSpecs `yaml:"dst_address,omitempty"`
+	SourceIP     string       `yaml:"source_ip,omitempty"`
 	Method       string       `yaml:"method"`
 	Upstream     string       `yaml:"upstream,omitempty"`
 	TLS          *UpstreamTLS `yaml:"tls,omitempty"`
@@ -48,6 +49,7 @@ type RouteRule struct {
 type DefaultRule struct {
 	Method   string       `yaml:"method"`
 	Upstream string       `yaml:"upstream,omitempty"`
+	SourceIP string       `yaml:"source_ip,omitempty"`
 	TLS      *UpstreamTLS `yaml:"tls,omitempty"`
 }
 
@@ -288,11 +290,17 @@ func (c Config) Validate() error {
 		if err := validateRouteMethodAndUpstream(rule.Method, rule.Upstream, effectiveTLS, rule.TLS != nil); err != nil {
 			return fmt.Errorf("routing rule: %w", err)
 		}
+		if rule.SourceIP != "" && net.ParseIP(rule.SourceIP) == nil {
+			return fmt.Errorf("routing rule: invalid source_ip %q", rule.SourceIP)
+		}
 	}
 	if c.Routing.Default != nil {
 		effectiveTLS := ResolveTLS(c.TLS, c.Routing.Default.TLS)
 		if err := validateRouteMethodAndUpstream(c.Routing.Default.Method, c.Routing.Default.Upstream, effectiveTLS, c.Routing.Default.TLS != nil); err != nil {
 			return fmt.Errorf("routing.default: %w", err)
+		}
+		if c.Routing.Default.SourceIP != "" && net.ParseIP(c.Routing.Default.SourceIP) == nil {
+			return fmt.Errorf("routing.default: invalid source_ip %q", c.Routing.Default.SourceIP)
 		}
 	}
 	if c.HTTP.MaxHeaderBytes <= 0 {

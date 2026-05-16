@@ -16,6 +16,7 @@ routing:
   # Keep fallback explicit for test clarity.
   default:
     method: "reject"
+    source_ip: "127.0.0.1"
 
   rules:
     # 1) dst_ports as single scalar int
@@ -29,6 +30,7 @@ routing:
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "connect"
       upstream: "https://proxy.example.com:8443"
+      source_ip: "127.0.0.1"
       tls:
         insecure_skip_verify: false
         min_version: "1.3"

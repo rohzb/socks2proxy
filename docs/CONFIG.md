@@ -19,21 +19,25 @@ tls:
 routing:
   default:
     method: "reject"
+    source_ip: "127.0.0.1"
 
   rules:
     - dst_ports: [80]
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "http"
       upstream: "http://proxy.example.com:3128"
+      source_ip: "127.0.0.1"
 
     - dst_ports: [443]
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "connect"
       upstream: "http://proxy.example.com:3128"
+      source_ip: "127.0.0.1"
 
     - dst_ports: [22]
       dst_addresses: ["0.0.0.0/0", "::/0"]
       method: "direct"
+      source_ip: "127.0.0.1"
 
     - dst_ports: [25]
       dst_addresses: ["0.0.0.0/0", "::/0"]
@@ -114,6 +118,7 @@ That means unmatched ports are rejected unless you set another default.
 | `dst_addresses` / `dst_address` | list/scalar | conditional | Destination address selector(s); accepts list or comma-separated scalar. If omitted, any destination address matches. |
 | `method` | string | yes | One of `http`, `connect`, `direct`, `reject`. |
 | `upstream` | string | conditional | Required for `http` and `connect`; forbidden for `direct` and `reject`. |
+| `source_ip` | string | optional | Local source IP used to bind outbound sockets for this rule before dialing target/upstream. |
 | `tls` | object | optional | Optional HTTPS upstream TLS settings. |
 
 ### `routing.default` fields
@@ -122,6 +127,7 @@ That means unmatched ports are rejected unless you set another default.
 |---|---|---|---|
 | `method` | string | yes | One of `http`, `connect`, `direct`, `reject`. |
 | `upstream` | string | conditional | Required for `http` and `connect`; forbidden for `direct` and `reject`. |
+| `source_ip` | string | optional | Local source IP used to bind outbound sockets when the default rule dials target/upstream. |
 | `tls` | object | optional | Optional HTTPS upstream TLS settings. |
 
 ### Methods
@@ -199,6 +205,11 @@ Selector semantics:
 - If a rule omits `dst_address(es)`, address matching is wildcard (`any`).
 - A rule must define at least one selector type (port and/or address).
 
+`source_ip` semantics:
+- If set, `socks2proxy` binds the outbound socket to this local IP before dialing.
+- Applies to `direct`, `http`, and `connect` methods.
+- Works for both `routing.rules[]` and `routing.default`.
+
 ### Rule validation
 
 - each expanded port value from `dst_port(s)` must be in `1..65535`.
@@ -207,6 +218,7 @@ Selector semantics:
   - CIDR (for example `10.0.0.0/24`)
   - IP range (for example `10.0.0.10-10.0.0.50`)
 - `method` must be one of `http`, `connect`, `direct`, `reject`.
+- `source_ip`, when set, must be a valid literal IPv4 or IPv6 address.
 
 ## `timeouts`
 
@@ -293,5 +305,6 @@ routing:
 - `method: "reject"` with `upstream` set -> invalid (upstream forbidden).
 - `method: "http"` or `"connect"` without `upstream` -> invalid (upstream required).
 - missing both destination selector types in a rule -> invalid (at least one of port/address is required).
+- invalid `source_ip` value (not a literal IP) -> invalid.
 - `logging.level: "verbose"` -> invalid (not in allowed set).
 - `listen: ":0"` -> invalid (port out of allowed range).

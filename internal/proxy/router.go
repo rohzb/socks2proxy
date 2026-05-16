@@ -35,6 +35,7 @@ const (
 type Rule struct {
 	DstPorts     map[int]struct{}
 	DstAddresses []string
+	SourceIP     string
 	Method       Method
 	Upstream     string
 	TLS          *config.UpstreamTLS
@@ -67,6 +68,7 @@ func RulesFromConfig(cfgRouting config.Routing, globalTLS *config.UpstreamTLS) [
 		rules = append(rules, Rule{
 			DstPorts:     pm,
 			DstAddresses: addresses,
+			SourceIP:     r.SourceIP,
 			Method:       Method(r.Method),
 			Upstream:     r.Upstream,
 			TLS:          config.ResolveTLS(globalTLS, r.TLS),
@@ -83,6 +85,7 @@ func DefaultRuleFromConfig(cfgRouting config.Routing, globalTLS *config.Upstream
 	return Rule{
 		Method:   Method(cfgRouting.Default.Method),
 		Upstream: cfgRouting.Default.Upstream,
+		SourceIP: cfgRouting.Default.SourceIP,
 		TLS:      config.ResolveTLS(globalTLS, cfgRouting.Default.TLS),
 	}
 }
@@ -105,10 +108,17 @@ func (r *Router) Route(client net.Conn, targetHost string, targetPort int) error
 		return errors.New("target rejected by routing rule")
 	}
 	if rule.Method == MethodDirect {
-		return HandleDirect(client, targetHost, targetPort, r.ConnectTimeout, r.IdleTimeout)
+		return HandleDirect(client, targetHost, targetPort, rule.SourceIP, r.ConnectTimeout, r.IdleTimeout)
 	}
 
 	dialer := net.Dialer{Timeout: r.ConnectTimeout}
+	if rule.SourceIP != "" {
+		localIP := net.ParseIP(rule.SourceIP)
+		if localIP == nil {
+			return fmt.Errorf("invalid source_ip %q", rule.SourceIP)
+		}
+		dialer.LocalAddr = &net.TCPAddr{IP: localIP}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), r.ConnectTimeout)
 	defer cancel()
 
